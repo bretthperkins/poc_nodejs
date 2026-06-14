@@ -1,4 +1,4 @@
-const dataPostgresService = require('../services/data.postgres.service');
+const dataPostgresService = require('./customer.service');
 
 exports.getCustomer = async (req, res) => {
   const customer_id = req.params.customer_id;
