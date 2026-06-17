@@ -1,11 +1,11 @@
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  user: process.env.POSTGRES_USER,
-  password: process.env.POSTGRES_PASSWORD,
-  database: process.env.POSTGRES_INSTANCE,
-  host: process.env.POSTGRES_HOST,
-  port: process.env.POSTGRES_PORT,
+  user: process.env.DB_SERVER_USER,
+  password: process.env.DB_SERVER_PASSWORD,
+  database: process.env.DB_SERVER_INSTANCE,
+  host: process.env.DB_SERVER_HOST,
+  port: process.env.DB_SERVER_PORT,
 });
 
 pool.on('connect', () => {
