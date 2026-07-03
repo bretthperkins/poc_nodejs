@@ -26,7 +26,7 @@ function authenticateToken(req, res, next) {
     getKey,
     {
       algorithms: ["RS256"],
-      issuer: process.env.KEYCLOAK_AUTH_SERVER_URL
+      issuer: process.env.KEYCLOAK_AUTH_ISSUER_URL
     },
     (err, decoded) => {
       if (err) {
