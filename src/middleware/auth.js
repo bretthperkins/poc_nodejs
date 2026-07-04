@@ -41,6 +41,72 @@ function getTokenDebugContext(token) {
   };
 }
 
+function classifyJwtError(err) {
+  if (!err) {
+    return {
+      code: "TOKEN_INVALID",
+      reason: "invalid",
+      message: "Token validation failed."
+    };
+  }
+
+  if (err.name === "TokenExpiredError") {
+    return {
+      code: "TOKEN_EXPIRED",
+      reason: "expired",
+      message: "Token has expired. Request a new token."
+    };
+  }
+
+  if (err.name === "NotBeforeError") {
+    return {
+      code: "TOKEN_NOT_ACTIVE",
+      reason: "not_active",
+      message: "Token is not active yet."
+    };
+  }
+
+  if (err.name === "JsonWebTokenError") {
+    if (err.message === "jwt malformed" || err.message === "jwt must be provided") {
+      return {
+        code: "TOKEN_MALFORMED",
+        reason: "malformed",
+        message: "Token format is invalid."
+      };
+    }
+
+    if (err.message.includes("jwt issuer invalid")) {
+      return {
+        code: "TOKEN_ISSUER_INVALID",
+        reason: "issuer_mismatch",
+        message: "Token issuer does not match expected issuer."
+      };
+    }
+
+    if (err.message.includes("invalid algorithm")) {
+      return {
+        code: "TOKEN_ALGORITHM_INVALID",
+        reason: "algorithm_invalid",
+        message: "Token signing algorithm is invalid."
+      };
+    }
+
+    if (err.message.includes("invalid signature")) {
+      return {
+        code: "TOKEN_SIGNATURE_INVALID",
+        reason: "signature_invalid",
+        message: "Token signature could not be verified."
+      };
+    }
+  }
+
+  return {
+    code: "TOKEN_INVALID",
+    reason: "invalid",
+    message: "Token validation failed."
+  };
+}
+
 function getKey(header, callback) {
   client.getSigningKey(header.kid, (err, key) => {
     if (err) return callback(err);
@@ -73,6 +139,8 @@ function authenticateToken(req, res, next) {
     (err, decoded) => {
       if (err) {
         const tokenContext = getTokenDebugContext(token);
+        const failure = classifyJwtError(err);
+        const exposeErrorDetails = process.env.JWT_EXPOSE_ERROR_DETAILS !== "false";
 
         console.error("JWT verification failed", {
           name: err.name,
@@ -97,7 +165,18 @@ function authenticateToken(req, res, next) {
           realm: process.env.KEYCLOAK_REALM,
           clientId: process.env.KEYCLOAK_CLIENT_ID
         });
-        return res.status(403).json({ error: "Invalid token" });
+
+        const responseBody = {
+          error: "Invalid token",
+          code: failure.code,
+          reason: failure.reason
+        };
+
+        if (exposeErrorDetails) {
+          responseBody.message = failure.message;
+        }
+
+        return res.status(403).json(responseBody);
       }
 
       req.user = decoded;
