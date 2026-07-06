@@ -1,10 +1,10 @@
 const dataPostgresService = require('./customer.service');
 
-exports.getCustomer = async (req, res) => {
-  const customer_id = req.params.customer_id;
+exports.getCustomerById = async (req, res) => {
+  const customer_id = req.params.id;
 
   if (!customer_id) {
-    res.status(400).json({ error: 'customer_id is required' });
+    res.status(400).json({ error: 'id is required' });
     return;
   }
 
