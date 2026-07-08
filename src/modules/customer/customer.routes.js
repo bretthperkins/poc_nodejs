@@ -1,12 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
-const dataPostgresController = require('./customer.controller');
+const controller = require('./customer.controller');
 
-// GET /customer/:customer_id
-router.get('/:customer_id', dataPostgresController.getCustomer);
-
-// GET /customers/company/:company_name
-router.get('/company/:company_name', dataPostgresController.getCustomersByCompany);
+router.get('/:id', controller.getCustomerById);
+router.get('/company_name/:company_name', controller.getCustomersByCompany);
 
 module.exports = router;
