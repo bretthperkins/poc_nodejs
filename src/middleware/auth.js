@@ -125,7 +125,6 @@ function getKey(header, callback) {
 
 function getRecognizedAudiences() {
   const configured = [
-    process.env.KEYCLOAK_AUDIENCE_GLOBAL,
     process.env.KEYCLOAK_AUDIENCE_CUSTOMER,
     process.env.KEYCLOAK_AUDIENCE_SELLER,
     ...(process.env.KEYCLOAK_RECOGNIZED_AUDIENCES || "").split(",")
