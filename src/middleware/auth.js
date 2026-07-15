@@ -33,6 +33,7 @@ function getTokenDebugContext(token) {
       azp: decoded?.payload?.azp,
       client_id: decoded?.payload?.client_id,
       sub: decoded?.payload?.sub,
+      permissions: getTokenPermissions(decoded?.payload),
       iat: decoded?.payload?.iat,
       iatIso: toIsoTime(decoded?.payload?.iat),
       exp: decoded?.payload?.exp,
@@ -133,6 +134,39 @@ function getRecognizedAudiences() {
   return [...new Set(configured.map((value) => value && value.trim()).filter(Boolean))];
 }
 
+function toArray(value) {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(" ")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function getTokenPermissions(decoded) {
+  const directPermissions = toArray(decoded?.permissions);
+  const scopedPermissions = toArray(decoded?.scope);
+  const scpPermissions = toArray(decoded?.scp);
+  const realmRoles = toArray(decoded?.realm_access?.roles);
+  const resourceRoles = Object.values(decoded?.resource_access || {}).flatMap((resource) =>
+    toArray(resource?.roles)
+  );
+
+  return [...new Set([
+    ...directPermissions,
+    ...scopedPermissions,
+    ...scpPermissions,
+    ...realmRoles,
+    ...resourceRoles
+  ])];
+}
+
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -146,21 +180,6 @@ function authenticateToken(req, res, next) {
   }
 
   const recognizedAudiences = getRecognizedAudiences();
-  if (recognizedAudiences.length === 0) {
-    console.error("JWT verification configuration invalid", {
-      reason: "no_recognized_audiences",
-      request: {
-        method: req.method,
-        path: req.originalUrl
-      }
-    });
-
-    return res.status(500).json({
-      error: "Server configuration error",
-      code: "AUTH_CONFIGURATION_INVALID",
-      reason: "no_recognized_audiences"
-    });
-  }
 
   jwt.verify(
     token,
@@ -168,7 +187,6 @@ function authenticateToken(req, res, next) {
     {
       algorithms: ["RS256"],
       issuer: process.env.KEYCLOAK_AUTH_ISSUER_URL,
-      audience: recognizedAudiences,
       // Tolerate minor clock skew between containers.
       clockTolerance: Number(process.env.JWT_CLOCK_TOLERANCE_SECONDS || 60)
     },
@@ -225,6 +243,7 @@ function authenticateToken(req, res, next) {
         return res.status(403).json(responseBody);
       }
 
+      decoded.permissions = getTokenPermissions(decoded);
       req.user = decoded;
       next();
     }
@@ -265,4 +284,33 @@ function requireAudience(expectedAudience) {
   };
 }
 
-module.exports = { authenticateToken, requireAudience };
+function requirePermission(expectedPermission) {
+  return (req, res, next) => {
+    if (!expectedPermission) {
+      return next();
+    }
+
+    const tokenPermissions = req.user?.permissions || [];
+
+    if (!tokenPermissions.includes(expectedPermission)) {
+      console.warn("Route permission check failed", {
+        expectedPermission,
+        tokenPermissions,
+        method: req.method,
+        path: req.originalUrl
+      });
+
+      return res.status(403).json({
+        error: "Forbidden",
+        code: "TOKEN_PERMISSION_INVALID",
+        reason: "permission_missing",
+        expectedPermission,
+        tokenPermissions
+      });
+    }
+
+    return next();
+  };
+}
+
+module.exports = { authenticateToken, requireAudience, requirePermission };

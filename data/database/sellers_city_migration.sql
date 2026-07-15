@@ -1,0 +1,14 @@
+BEGIN;
+
+ALTER TABLE sellers
+ADD COLUMN IF NOT EXISTS city TEXT;
+
+UPDATE sellers
+SET city = cuty
+WHERE city IS NULL
+  AND cuty IS NOT NULL;
+
+ALTER TABLE sellers
+DROP COLUMN IF EXISTS cuty;
+
+COMMIT;
