@@ -17,8 +17,8 @@ const FIND_BY_COMPANY = `
 `;
 
 const CREATE_CUSTOMER = `
-  INSERT INTO customers (first_name, last_name, email)
-  VALUES ($1, $2, $3)
+  INSERT INTO customers (first_name, last_name, email, company_name)
+  VALUES ($1, $2, $3, $4)
   RETURNING *;
 `;
 

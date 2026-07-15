@@ -42,3 +42,104 @@ exports.getSellersBySellerName = async (req, res) => {
     res.status(500).json({ error: error.message || 'Failed to fetch sellers' });
   }
 };
+
+exports.createSeller = async (req, res) => {
+  const {
+    seller_name,
+    contact_first_name,
+    contact_last_name,
+    website,
+    contact_email,
+    address_line_1,
+    address_line_2,
+    city,
+    state,
+    zip,
+  } = req.body;
+
+  if (
+    !seller_name ||
+    !contact_first_name ||
+    !contact_last_name ||
+    !website ||
+    !contact_email ||
+    !address_line_1 ||
+    !city ||
+    !state ||
+    !zip
+  ) {
+    return res.status(400).json({
+      error: 'seller_name, contact_first_name, contact_last_name, website, contact_email, address_line_1, city, state, zip are required',
+    });
+  }
+
+  try {
+    const message = await dataPostgresService.createSeller(
+      seller_name,
+      contact_first_name,
+      contact_last_name,
+      website,
+      contact_email,
+      address_line_1,
+      address_line_2 || null,
+      city,
+      state,
+      zip
+    );
+    res.status(201).json({ message });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to create seller' });
+  }
+};
+
+exports.updateSeller = async (req, res) => {
+  const seller_id = req.params.id;
+  const {
+    seller_name,
+    contact_first_name,
+    contact_last_name,
+    website,
+    contact_email,
+    address_line_1,
+    address_line_2,
+    city,
+    state,
+    zip,
+  } = req.body;
+
+  if (
+    !seller_id ||
+    !seller_name ||
+    !contact_first_name ||
+    !contact_last_name ||
+    !website ||
+    !contact_email ||
+    !address_line_1 ||
+    !city ||
+    !state ||
+    !zip
+  ) {
+    return res.status(400).json({
+      error: 'id, seller_name, contact_first_name, contact_last_name, website, contact_email, address_line_1, city, state, zip are required',
+    });
+  }
+
+  try {
+    const message = await dataPostgresService.updateSeller(
+      seller_id,
+      seller_name,
+      contact_first_name,
+      contact_last_name,
+      website,
+      contact_email,
+      address_line_1,
+      address_line_2 || null,
+      city,
+      state,
+      zip
+    );
+    res.json({ message });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to update seller' });
+  }
+};
